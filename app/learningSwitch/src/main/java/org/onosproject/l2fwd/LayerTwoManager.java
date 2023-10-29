@@ -201,6 +201,7 @@ public class LayerTwoManager implements LayerTwoService {
              * [STEP 1] Extract Packet src/dstMac
              * HINT: use APIs in pc.inPacket().
              */
+			MacAddress srcMac = pc.inPacket().parsed().getSourceMAC();
 			MacAddress dstMac = pc.inPacket().parsed().getDestinationMAC();
             /**
              * [STEP 2] Insert new entry to the mactable
@@ -209,7 +210,6 @@ public class LayerTwoManager implements LayerTwoService {
              * HINT: add the pair srcMac and macTableEntry to macTable.
              */
 			Map<MacAddress, MacTableEntry> macTable = getDeviceMacTable(cp.deviceId());
-			MacAddress srcMac = pc.inPacket().parsed().getSourceMAC();
 			MacTableEntry macTableEntry = new MacTableEntry(cp.port(), Duration.ofSeconds(60));
 			macTable.put(srcMac, macTableEntry);
 
@@ -224,8 +224,9 @@ public class LayerTwoManager implements LayerTwoService {
              *      Insert the FlowRule to the designated output port.
              * Otherwise, we haven't learnt the output port yet. We need to flood this packet to all the ports.
              */
-			outPort = macTable.get(dstMac).getPortNumber();
-			if (outPort != null) {
+			MacTableEntry lookupEntry = macTable.get(dstMac);
+			if (lookupEntry != null) {
+				outPort = lookupEntry.getPortNumber();
 				log.info("Output port: {}", outPort);
 				pc.treatmentBuilder().setOutput(outPort);
 				FlowRule fr = DefaultFlowRule.builder()
