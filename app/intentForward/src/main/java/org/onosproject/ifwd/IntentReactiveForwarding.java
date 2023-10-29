@@ -144,8 +144,8 @@ public class IntentReactiveForwarding {
 			Ethernet ethPkt = context.inPacket().parsed();
 			// setUpConnectivity(PacketContext context, HostId srcId, HostId dstId)
 			// HostId constructor: hostId(MacAddress macAddr)
-			HostId srcId = hostId(ethPkt.getSourceMAC());
-			HostId dstId = hostId(ethPkt.getDestinationMAC());
+			HostId srcId = HostId.hostId(ethPkt.getSourceMAC());
+			HostId dstId = HostId.hostId(ethPkt.getDestinationMAC());
 
             /** 
              * [STEP 2] Do we know where the destination host is and which host should we hand this packet to?
@@ -161,6 +161,7 @@ public class IntentReactiveForwarding {
 			}
 			setUpConnectivity(context, srcId, dstId);
 			forwardPacketToDst(context, destination);
+		}
     }
 
     /**
