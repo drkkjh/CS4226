@@ -104,24 +104,24 @@ public class LayerTwoManager implements LayerTwoService {
         Iterable<Device> devices = deviceService.getDevices();
         for (Device d : devices) {
             /* Insert Firewall flow rule on every devices */
-	    DeviceId deviceId = d.id();
-	    TrafficSelector selector = DefaultTrafficSelector.builder()
-					.matchEthType(Ethernet.TYPE_IPV4)
-					.matchIPProtocol(IPv4.PROTOCOL_TCP)
-					.matchIPSrc(srcIpAddress.toIpPrefix())
-					.matchIPDst(dstIpAddress.toIpPrefix())
-					.matchTcpDst(TpPort.tpPort((int) dstPort.toLong()))
+			DeviceId deviceId = d.id();
+			TrafficSelector selector = DefaultTrafficSelector.builder()
+						.matchEthType(Ethernet.TYPE_IPV4)
+						.matchIPProtocol(IPv4.PROTOCOL_TCP)
+						.matchIPSrc(srcIpAddress.toIpPrefix())
+						.matchIPDst(dstIpAddress.toIpPrefix())
+						.matchTcpDst(TpPort.tpPort((int) dstPort.toLong()))
+						.build();
+			FlowRule fr = DefaultFlowRule.builder()
+					.forDevice(deviceId)
+					.withSelector(selector)
+					.withTreatment(DefaultTrafficTreatment.builder().drop().build())
+					.withPriority(PacketPriority.REACTIVE.priorityValue())
+					.makeTemporary(30)
+					.fromApp(appId)
 					.build();
-	    FlowRule fr = DefaultFlowRule.builder()
-				.forDevice(deviceId)
-				.withSelector(selector)
-				.withTreatment(DefaultTrafficTreatment.builder().drop().build())
-				.withPriority(PacketPriority.REACTIVE.priorityValue())
-				.makeTemporary(30)
-				.fromApp(appId)
-				.build();
-	    log.info("On device {} install firewall rule: {}", d.id(), fr);
-	    flowRuleService.applyFlowRules(fr);
+			log.info("On device {} install firewall rule: {}", d.id(), fr);
+			flowRuleService.applyFlowRules(fr);
 
             // HINT: use DefaultFlowRule to match packets' src/dst address and port
             // HINT2: apply withTreatment(DefaultTrafficTreatment.builder().drop().build()) to drop matched packet
@@ -201,17 +201,17 @@ public class LayerTwoManager implements LayerTwoService {
              * [STEP 1] Extract Packet src/dstMac
              * HINT: use APIs in pc.inPacket().
              */
-	    MacAddress dstMac = pc.inPacket().parsed().getDestinationMAC();
+	    	MacAddress dstMac = pc.inPacket().parsed().getDestinationMAC();
             /**
              * [STEP 2] Insert new entry to the mactable
              * HINT: get current macTable from macTables with the device id cp.deviceId().
              * HINT: create new MacTableEntry with in port [cp.port()] and a default duration 60 [Duration.ofSeconds(60)].
              * HINT: add the pair srcMac and macTableEntry to macTable.
              */
-	    Map<MacAddress, MacTableEntry> macTable = getDeviceMacTable(cp.deviceId());
-	    MacAddress srcMac = pc.inPacket().parsed().getSourceMAC();
-	    MacTableEntry macTableEntry = new MacTableEntry(cp.port(), Duration.ofSeconds(60));
-	    macTable.put(srcMac, macTableEntry);
+			Map<MacAddress, MacTableEntry> macTable = getDeviceMacTable(cp.deviceId());
+			MacAddress srcMac = pc.inPacket().parsed().getSourceMAC();
+			MacTableEntry macTableEntry = new MacTableEntry(cp.port(), Duration.ofSeconds(60));
+			macTable.put(srcMac, macTableEntry);
 
             PortNumber outPort = null;
 
@@ -224,20 +224,21 @@ public class LayerTwoManager implements LayerTwoService {
              *      Insert the FlowRule to the designated output port.
              * Otherwise, we haven't learnt the output port yet. We need to flood this packet to all the ports.
              */
-	    MacTableEntry lookupEntry = macTable.get(dstMac);
-	    if (lookupEntry != null) {
-	    	outPort = lookupEntry.getPortNumber();
-		pc.treatmentBuilder().setOutput(outPort);
-		FlowRule fr = DefaultFlowRule.builder()
-				.withSelector(DefaultTrafficSelector.builder().matchEthDst(dstMac).build())
-				.withTreatment(DefaultTrafficTreatment.builder().setOutput(outPort).build())
-				.forDevice(cp.deviceId()).withPriority(PacketPriority.REACTIVE.priorityValue())
-				.fromApp(appId).build();
-		flowRuleService.applyFlowRules(fr);
-		pc.send();
-	    } else {
-		flood(pc);
-	    }
+			outPort = macTable.get(dstMac).getPortNumber();
+			if (outPort != null) {
+				log.info("Output port: {}", outPort);
+				pc.treatmentBuilder().setOutput(outPort);
+				FlowRule fr = DefaultFlowRule.builder()
+						.withSelector(DefaultTrafficSelector.builder().matchEthDst(dstMac).build())
+						.withTreatment(DefaultTrafficTreatment.builder().setOutput(outPort).build())
+						.forDevice(cp.deviceId()).withPriority(PacketPriority.REACTIVE.priorityValue())
+						.fromApp(appId).build();
+				flowRuleService.applyFlowRules(fr);
+				pc.send();
+			} else {
+				flood(pc);
+				log.info("Flooding occurred");
+			}
 
             /**
              **
