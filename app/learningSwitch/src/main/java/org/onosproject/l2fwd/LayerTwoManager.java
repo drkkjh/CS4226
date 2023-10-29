@@ -104,19 +104,17 @@ public class LayerTwoManager implements LayerTwoService {
         Iterable<Device> devices = deviceService.getDevices();
         for (Device d : devices) {
             /* Insert Firewall flow rule on every devices */
-			DeviceId deviceId = d.id();
-			TrafficSelector selector = DefaultTrafficSelector.builder()
-						.matchEthType(Ethernet.TYPE_IPV4)
-						.matchIPProtocol(IPv4.PROTOCOL_TCP)
-						.matchIPSrc(srcIpAddress.toIpPrefix())
-						.matchIPDst(dstIpAddress.toIpPrefix())
-						.matchTcpDst(TpPort.tpPort((int) dstPort.toLong()))
-						.build();
 			FlowRule fr = DefaultFlowRule.builder()
-					.forDevice(deviceId)
-					.withSelector(selector)
+					.withSelector(DefaultTrafficSelector.builder()
+									.matchEthType(Ethernet.TYPE_IPV4)
+									.matchIPProtocol(IPv4.PROTOCOL_TCP)
+									.matchIPSrc(srcIpAddress.toIpPrefix())
+									.matchIPDst(dstIpAddress.toIpPrefix())
+									.matchTcpDst(TpPort.tpPort((int) dstPort.toLong()))
+									.build())
 					.withTreatment(DefaultTrafficTreatment.builder().drop().build())
-					.withPriority(PacketPriority.REACTIVE.priorityValue())
+					.withDevice(d.id())
+					.withPriority(PacketPriority.CONTROL.priorityValue())
 					.makeTemporary(30)
 					.fromApp(appId)
 					.build();
