@@ -141,6 +141,11 @@ public class IntentReactiveForwarding {
              * [STEP 1] Extract Ethernet header
              * more specifically, we need the source and destination IP address
              */
+			Ethernet ethPkt = context.inPacket().parsed();
+			// setUpConnectivity(PacketContext context, HostId srcId, HostId dstId)
+			// HostId constructor: hostId(MacAddress macAddr)
+			HostId srcId = hostId(ethPkt.getSourceMAC());
+			HostId dstId = hostId(ethPkt.getDestinationMAC());
 
             /** 
              * [STEP 2] Do we know where the destination host is and which host should we hand this packet to?
@@ -148,7 +153,14 @@ public class IntentReactiveForwarding {
              * Otherwise, just forward it to the next hop and processing is done.
              * * HINT: use setUpConnectivity() to install flow rule
              */
-        }
+			Host destination = hostService.getHost(dstId);
+			if (destination == null) {
+				flood(context);
+				// Bail after flooding
+				return;
+			}
+			setUpConnectivity(context, srcId, dstId);
+			forwardPacketToDst(context, destination);
     }
 
     /**
@@ -158,6 +170,8 @@ public class IntentReactiveForwarding {
      * @param portNumber the specified port through which this packet will be send out
      */
     private void packetOut(PacketContext context, PortNumber portNumber) {
+		context.treatmentBuilder().setOutput(portNumber);
+		context.send();
 
     }
 
@@ -183,6 +197,10 @@ public class IntentReactiveForwarding {
      */
     private void forwardPacketToDst(PacketContext context, Host dst) {
         /* Build and send out packet to destination host */
+		TrafficTreatment treatment = DefaultTrafficTreatment.builder().setOutput(dst.location().port()).build();
+		OutboundPacket outPkt = new DefaultOutboundPacket(dst.location().deviceId(), treatment, context.inPacket().unparsed());
+		packetService.emit(outPkt);
+		log.info("Sending outbound packet: {}", outPkt);
     }
 
     /* Install a rule forwarding the packet to the specified port. */
