@@ -201,7 +201,7 @@ public class LayerTwoManager implements LayerTwoService {
              * [STEP 1] Extract Packet src/dstMac
              * HINT: use APIs in pc.inPacket().
              */
-	    	MacAddress dstMac = pc.inPacket().parsed().getDestinationMAC();
+			MacAddress dstMac = pc.inPacket().parsed().getDestinationMAC();
             /**
              * [STEP 2] Insert new entry to the mactable
              * HINT: get current macTable from macTables with the device id cp.deviceId().
