@@ -233,6 +233,7 @@ public class LayerTwoManager implements LayerTwoService {
 						.withSelector(DefaultTrafficSelector.builder().matchEthDst(dstMac).build())
 						.withTreatment(DefaultTrafficTreatment.builder().setOutput(outPort).build())
 						.forDevice(cp.deviceId()).withPriority(PacketPriority.REACTIVE.priorityValue())
+						.makeTemporary(60)
 						.fromApp(appId).build();
 				flowRuleService.applyFlowRules(fr);
 				pc.send();
