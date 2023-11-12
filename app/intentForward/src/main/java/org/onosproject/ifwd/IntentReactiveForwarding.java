@@ -220,9 +220,17 @@ public class IntentReactiveForwarding {
         if (intent != null) {
             if (WITHDRAWN_STATES.contains(intentService.getIntentState(key))) {
                 /* This intent has been withdrawn, just insert it once more! */
+				HostToHostIntent hostIntent = HostToHostIntent.builder()
+					.appId(appId)
+					.key(key)
+					.one(srcId)
+					.two(dstId)
+					.selector(selector)
+					.treatment(treatment)
+					.build();
 
                 /* Build host-to-host intent and submit to Intent Service */
-                HostToHostIntent hostIntent;
+                intentService.submit(hostIntent);
             } else if (intentService.getIntentState(key) == IntentState.FAILED) {
                 /* Special case: handle failed intent */
                 TrafficSelector objectiveSelector = DefaultTrafficSelector.builder()
@@ -244,9 +252,17 @@ public class IntentReactiveForwarding {
              * This intent has never been inserted before, 
              * we should submit it to Intent Service.
              */
+			HostToHostIntent hostIntent = HostToHostIntent.builder()
+				.appId(appId)
+				.key(key)
+				.one(srcId)
+				.two(dstId)
+				.selector(selector)
+				.treatment(treatment)
+				.build();
 
             /* Build host-to-host intent and submit to Intent Service */
-            HostToHostIntent hostIntent;
+            intentService.submit(hostIntent);
         }
 
     }
